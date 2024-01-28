@@ -1,44 +1,68 @@
-# Expresiones vs. declaraciones
+## Módulos en JavaScript
 
-La sintaxis de JS es el conjunto de reglas que definen cómo podemos combinar distintos símbolos para producir instrucciones válidas con el objeto de crear un script válido que el motor entienda.
+En sus primeras versiones, JS no implementó funciones nativas que manejaran espacios de nombres y módulos. Para suplir esta carencia se fueron introduciendo con el tiempo diferentes patrones de diseño. Vamos a reseñar algunos de ellos:
 
-En JS existen dos estructuras sintácticas importantes: las **expresiones**, que son fragmentos de código que producen un valor a ser evaluadas, y las **sentencias**, que son acciones que son ejecutadas para que nuestro script siga la lógica que queremos. 
+### Funciones IIFE
 
-Las expresiones son similares a las **palabras** en un idioma. Las expresiones pueden ser primarias, cuando se componen de una sola palabra  o complejas, cuando no es así.
-
-Por ejemplo, la siguiente sería una expresión compleja, en la que se mezclan varios operadores y datos primarios 
+Se han visto en el apartado anterior. Es una manera interesante de escribir módulos para usar con navegadores muy antiguos. Implementa el **patrón Singleton**, creando una única instancia de los objetos y del código y proporcionando un único punto de acceso global a ella. Podemos concatenar archivos distintos sin preocuparnos de los espacios de nombres. El problema es que la carga de estas funciones es sincrónica, por lo que **tendremos que tener en cuenta el orden** de uso de las mismas.
 
 ```javascript
-true && 2 * 9
+(function () {
+  // Código del módulo
+})();
 ```
 
-Si entendemos que el estado de una variable es su valor actual, hay que tener en cuenta que **las expresiones no necesariamente cambian el estado de las variables**
+### CommonJS (CJS)
+
+Es el sistema de módulos nativo de Node.JS. En este patrón, cada archivo representa un módulo y cada una de las variables locales de dicho módulo es privada. Se usa la sintaxis `module.export` o `export`. En tiempo de ejecución Node.JS envolverá todo el módulo en un contenedor de funciones y se dispondrá de ellos gracias a una sentencia `require`. La ventaja de usar CommonJS es que, aunque la carga de los módulos es síncrona, CommonJS organiza las llamadas a los módulos de forma que se satisfagan las dependencias circulares. La desventaja principal, sin embargo, es que este sistema **no es el más adecuado** para aplicaciones del lado del cliente. Veamos un ejemplo:
 
 ```javascript
-const a = 2;
+// module-name.js
+module.exports = {
+  /* ... */
+}
 
-a + 4 // expresion
-console.log(a + 4) // 6
-console.log(a) // 2, El valor de la variable (estado) no ha cambiado
+// index.js
+const module = require("./module-name.js");
+const package = require("package");
+
+module.method();
 ```
 
-Las **declaraciones (statements)** , a diferencia de las expresiones, **ejecutan acciones**. Podemos pensarlas como las oraciones en un idioma. Si en un idioma las oraciones terminan con un punto, en JS las sentencias se terminan con punto y coma, `;`
+### Asynchronous Module Definition (AMD) 
 
-No pueden ser usadas como argumentos de funciones o en la parte derecha de una asignación o detrás de un operador. Hay varios tipos de sentencias en JS:
+AMD nace a partir de las limitaciones de CJS a la hora de implementarse del lado del cliente. Su sintaxis es más compleja de entender y no alcanzó el nivel de popularidad de CJS. La estructura es del tipo `define(deps, module)`. Veamos un ejemplo:
 
-- Sentencias de expresión: No tienen mucho sentido si no buscamos su efecto secundario, que es asignar un valor a una variable o invocar el resultado de una función
-- Sentencias vacías (muy raras de encontrar): Por ejemplo, un bucle `for` sin bloque asociado
-- Sentencias de bloque: Muy habituales en el lenguaje. Los bloques de instrucciones se escriben entre llaves. Es muy recomendable, siempre que se pueda, usar este tipo de escritura de sentencias
-- Sentencias de declaración: Declaran el valor de una variable. Un sentencia de declaración muy importante es la declaración de función. Se ampliará información más abajo.
-- Sentencias de control: Son las que alteran el flujo normal de ejecución. Se incluyen aquí los bucles y los bloques condicionales. También las sentencias de salto, como `return`, `break`,  `continue` o `trow` estarían en este grupo.
--  Sentencias misceláneas: Se incluyen aquí aquellas sentencias que no pertenecen a cualquiera de los grupos anteriores. Ejemplo de estas sentencias podrían ser `debbuger` o `'use strict'`
+```javascript
+define(['dep1', 'dep2'], function (dep1, dep2) {
+  /* ... */
 
-## Declaraciones y expresiones en funciones
+  return {
+    /* ... */
+  };
+});
+```
 
-En JavaScript tenemos dos maneras principales de definir funciones, como una **declaración** o como una **expresión**.
+El array `['dep1', 'dep2']` contiene las dependencias que se necesitan para ejecutar el módulo (function()). Si están cargadas, se ejecuta, si no, se carga asíncronamente hasta que estén disponibles. La implementación más interesante de este patrón fue `require.js`, sin embargo, con la llegada de un sistema nativo de módulos a JS con la especificación ES6. Este sistema de módulos y todos los anteriores pasaron a un segundo plano.
 
-Las funciones definidas de forma expresiva se sitúan a la derecha de un símbolo igual, asignándose su resultado a una variable. Una función declarada de forma expresiva puede llevar nombre o no, pero ese nombre sólo puede usarse en el scope de la propia función para ser llamada de forma recursiva. Las funciones expresivas que se definen sin nombre son denominadas funciones **anónimas**. Cuando definamos una función de forma declarativa, comenzaremos la instrucción con la palabra `function` y la acompañaremos del nombre y los parámetros de la misma. La declaración de función no puede hacerse nunca **de una función anónima**, bueno, salvo en un caso: la IIFE, en las que una función es declarada **e inmediatamente le pasamos los parámetros**...
+### ES Modules (ESM)
 
-Pero quizás es el **hoisting** la diferencia más importante entre las funciones definidas de forma declarativa y las definidas de forma expresiva. Cuando una función es definida de forma declarativa **es posible invocarla antes de definirla en el propio código**, ya que en tiempo de ejecución, el motor JS va a tener en cuenta todas las declaraciones de funciones antes de evaluarlas en expresiones. Sin embargo, **si la función en cuestión ha sido definida de forma expresiva, el hoisting no se aplica** (ni aunque la función expresiva no sea anónima). Es similar a invocar un objeto antes de crearlo: Esto es imposible en JS y provoca un error.
+Con ECMAScript 2015 (ES6) aparece un sistema de módulos nativo y fácil de usar. Recoger, de manera simple, lo mejor de los patrones anteriores. Veamos un ejemplo que ya nos resultará más familiar
 
-Un último detalle: Cuando definamos una función de forma declarativa no es necesario terminar el bloque de instrucciones con punto y coma, mientras que cuando estemos tratando con una función definida mediante expresión sí que debemos hacerlo. Es una buena práctica llevar a cabo estas reglas, aunque sabemos que el motor de JS en tiempo de ejecución lo va a hacer por nosotros.
+```javascript
+// module.js
+export const data = "Frodo";
+export const method = (data) => console.log(`"Hello, ${data}`);
+
+// index.js
+import { data, method } from "./module.js";
+```
+
+###  Diferencias entre CJS y ESM
+
+Repasemos por último algunas diferencias entre los sistemas de módulos CJS y ESM
+
+- NodeJS soporta tradicionalmente la sintaxis `require` de **CommonJS**, y aunque cada vez soporta mejor **ESM**, aún no es completo. Tiene una amplia comunidad que usa **CommonJS** a través de **NPM**.
+- **CommonJS** sólo permite cargar módulos de forma síncrona, mientras que **ESM** permite carga síncrona y asíncrona.
+- Los `require` de **CommonJS** no son compatibles en el navegador de forma directa, mientras que los `import` de **ESM** si lo son si se indica el atributo `<script type="module">` en los scripts que los utilicen.
+- **CommonJS** no permite cargar directamente desde una URL o CDN un módulo, mientras que con **ESM** puedes hacerlo sin problemas y funciona directamente desde un navegador.
